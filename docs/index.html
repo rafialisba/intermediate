@@ -13,8 +13,8 @@
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script type="module" crossorigin src="./assets/index-CBWmlVI5.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-Dk71VF-t.css">
+  <script type="module" crossorigin src="/assets/index-DTDf9JAD.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-Dk71VF-t.css">
 </head>
 
 <body>
@@ -50,7 +50,7 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', async () => {
         try {
-          const registration = await navigator.serviceWorker.register('./service-worker.js');
+          const registration = await navigator.serviceWorker.register('/service-worker.js');
           console.log('Service Worker berhasil terdaftar dengan scope:', registration.scope);
         } catch (error) {
           console.error('Service Worker gagal didaftarkan:', error);

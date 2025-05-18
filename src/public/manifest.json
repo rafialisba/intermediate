@@ -8,13 +8,13 @@
   "theme_color": "#0078D7",
   "icons": [
     {
-      "src": "/images/logo.png",
+      "src": "./images/logo.png",
       "sizes": "192x192", 
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/images/logo.png",
+      "src": "./images/logo.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
@@ -22,12 +22,12 @@
   ],
   "screenshots": [
     {
-      "src": "/images/screenshot.png",
+      "src": "./images/screenshot.png",
       "sizes": "1280x720",
       "type": "image/png"
     },
     {
-      "src": "/images/screenshot.png",
+      "src": "./images/screenshot.png",
       "sizes": "1280x720",
       "type": "image/png"
     }

@@ -142,7 +142,7 @@ export default class HomePage {
           <div class="cached-story-image">
             <img src="${story.photoUrl}" alt="${
           story.title
-        }" loading="lazy" onerror="this.src='/images/placeholder.png';" />
+        }" loading="lazy" onerror="this.src='./images/placeholder.png';" />
           </div>
           <div class="cached-story-content">
             <h3>${story.title}</h3>
@@ -451,8 +451,8 @@ export default class HomePage {
       navigator.serviceWorker.ready.then((registration) => {
         registration.showNotification("Selamat datang di Snapshot!", {
           body: "Terima kasih telah mengaktifkan notifikasi. Kami akan memberi tahu saat ada cerita baru!",
-          icon: "/images/logo.png",
-          badge: "/images/badge.png",
+          icon: "./images/logo.png",
+          badge: "./images/badge.png",
         });
       });
 
@@ -518,7 +518,7 @@ export default class HomePage {
       storyCard.innerHTML = `
           <img src="${story.photoUrl}" alt="${
         story.name
-      }" loading="lazy" onerror="this.src='/images/placeholder.png';" />
+      }" loading="lazy" onerror="this.src='./images/placeholder.png';" />
           <h2>${story.name}</h2>
           <p>${story.description}</p>
           <div class="coordinate">

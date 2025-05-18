@@ -615,10 +615,6 @@ header {
   color: #6c757d;
 }
 
-/* start */
-
-/* cached-data.css /
-/ Styling untuk bagian data tersimpan */
 .offline-data-section {
   background: linear-gradient(
     145deg,
@@ -839,7 +835,6 @@ header {
   }
 }
 
-/* Animasi */
 @keyframes slideUp {
   from {
     transform: translateY(100%);
@@ -850,7 +845,7 @@ header {
     opacity: 1;
   }
 }
-/* Peta tidak tersedia saat offline */
+
 .map-unavailable {
   background-color: #e9ecef;
   padding: 10px;
@@ -859,8 +854,6 @@ header {
   color: #6c757d;
   font-size: 0.9em;
 }
-
-/* end */
 
 @media screen and (width > 1000px) {
   .navigation-drawer {

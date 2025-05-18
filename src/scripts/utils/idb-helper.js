@@ -199,7 +199,7 @@ export async function setupPWA() {
       if (Notification.permission === "granted") {
         new Notification("Snapshot", {
           body: "Anda kembali online!",
-          icon: "/images/logo.png",
+          icon: "./images/logo.png",
         });
       }
     },
@@ -208,7 +208,7 @@ export async function setupPWA() {
       if (Notification.permission === "granted") {
         new Notification("Snapshot", {
           body: "Anda sedang offline. Postingan akan disimpan dan dikirim saat online.",
-          icon: "/images/logo.png",
+          icon: "./images/logo.png",
         });
       }
     }
@@ -226,7 +226,7 @@ registerSWMessageListener((event) => {
     if (message.result && Notification.permission === "granted") {
       new Notification("Snapshot", {
         body: "Semua postingan offline berhasil disinkronkan!",
-        icon: "/images/logo.png",
+        icon: "./images/logo.png",
       });
     }
   }
