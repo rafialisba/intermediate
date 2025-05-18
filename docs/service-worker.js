@@ -13,14 +13,14 @@ const { ExpirationPlugin } = workbox.expiration;
 const { precacheAndRoute } = workbox.precaching;
 
 precacheAndRoute([
-  { url: "/", revision: "1" },
-  { url: "/index.html", revision: "1" },
-  { url: "/app.js", revision: "1" },
-  { url: "/styles.css", revision: "1" },
-  { url: "/manifest.json", revision: "1" },
-  { url: "/favicon.png", revision: "1" },
-  { url: "/offline.html", revision: "1" },
-  { url: "/images/logo.png", revision: "1" },
+  { url: "./", revision: "1" },
+  { url: "./index.html", revision: "1" },
+  { url: "./app.js", revision: "1" },
+  { url: "./styles.css", revision: "1" },
+  { url: "./manifest.json", revision: "1" },
+  { url: "./favicon.png", revision: "1" },
+  { url: "./offline.html", revision: "1" },
+  { url: "./images/logo.png", revision: "1" },
 ]);
 
 registerRoute(
@@ -150,8 +150,8 @@ self.addEventListener("push", async function (event) {
         title: "Snapshot App",
         options: {
           body: "Ada pembaruan baru di Snapshot",
-          icon: "/images/logo.png",
-          badge: "/images/badge.png",
+          icon: "./images/logo.png",
+          badge: "./images/badge.png",
         },
       };
     }
@@ -326,7 +326,7 @@ self.addEventListener("fetch", function (event) {
         }
 
         const cache = await caches.open("pages-cache");
-        const cachedResponse = await cache.match("/offline.html");
+        const cachedResponse = await cache.match("./offline.html");
         return (
           cachedResponse ||
           new Response("Network error, and no offline page available", {
@@ -383,7 +383,7 @@ async function syncOfflinePosts() {
 
           await self.registration.showNotification("Snapshot", {
             body: "Postingan yang Anda buat saat offline berhasil dikirim!",
-            icon: "/images/logo.png",
+            icon: "./images/logo.png",
           });
         }
       } catch (error) {
