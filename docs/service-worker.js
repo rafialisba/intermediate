@@ -15,11 +15,9 @@ const { precacheAndRoute } = workbox.precaching;
 precacheAndRoute([
   { url: "./", revision: "1" },
   { url: "./index.html", revision: "1" },
-  { url: "./styles.css", revision: "1" },
   { url: "./manifest.json", revision: "1" },
   { url: "./favicon.png", revision: "1" },
   { url: "./offline.html", revision: "1" },
-  { url: "./images/logo.png", revision: "1" },
 ]);
 
 registerRoute(
