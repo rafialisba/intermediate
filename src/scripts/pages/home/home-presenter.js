@@ -21,13 +21,6 @@ export default class HomePagePresenter {
       }
 
       this.#view.showStories(response.listStory);
-
-      if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({
-          action: "saveStories",
-          data: response.listStory,
-        });
-      }
     } catch (error) {
       if (!navigator.onLine) {
         this.#view.showError(

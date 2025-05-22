@@ -255,7 +255,7 @@ header {
   overflow-wrap: break-word;
 }
 
-.story-card .story-card-button-details {
+.story-card .story-card-button-details, .save-story-btn {
   background-color: transparent;
   border: none;
   color: #ffffffbd;
@@ -265,7 +265,7 @@ header {
   margin-inline: 0.4rem;
 }
 
-.story-card .story-card-button-details:hover {
+.story-card .story-card-button-details:hover, .save-story-btn:hover {
   text-decoration: underline;
   cursor: pointer;
 }
@@ -661,6 +661,33 @@ header {
   border-bottom: 2px solid var(--accent-color);
   display: flex;
   align-items: center;
+  gap: 0.5rem;
+}
+
+#offline-indicator {
+  border: 1px solid white;
+  width: fit-content;
+  padding: 1rem;
+  margin-left: 1rem;
+  margin-bottom: 1rem;
+}
+
+.delete-story-btn, .story-details-btn {
+  background-color: transparent;
+  border: 1px solid #ffffff25;
+  border-radius: 5px;
+  color: white;
+  padding-inline: 0.9rem;
+  padding-block: 0.5rem;
+}
+
+.delete-story-btn:hover, .story-details-btn:hover {
+  cursor: pointer;
+}
+
+.story-actions {
+  padding-top: 1rem;
+  display: flex;
   gap: 0.5rem;
 }
 

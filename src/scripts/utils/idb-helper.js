@@ -28,7 +28,7 @@ const dbPromise = openDB("snapshot-store", 1, {
 });
 
 export async function saveStoriesToIndexedDB(stories) {
-  if (!stories || stories.length === 0) return;
+  if (!stories || stories.length === 0) return false;
 
   try {
     const db = await dbPromise;
@@ -36,30 +36,28 @@ export async function saveStoriesToIndexedDB(stories) {
     const store = tx.objectStore("stories");
 
     const existingStories = await store.getAll();
-    const optimizedStories = stories.map((story) => ({
-      id: story.id,
-      title: story.name,
-      description: story.description,
-      photoUrl: story.photoUrl,
-      lat: story.lat,
-      lon: story.lon,
-      createdAt: story.createdAt,
-      syncTimestamp: new Date().toISOString(),
-    }));
+    const existingIds = existingStories.map((story) => story.id);
 
-    const allStories = [...existingStories, ...optimizedStories]
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-      .slice(0, 10);
+    for (const story of stories) {
+      if (!existingIds.includes(story.id)) {
+        const optimizedStory = {
+          id: story.id,
+          title: story.title || story.name,
+          description: story.description,
+          photoUrl: story.photoUrl,
+          lat: story.lat,
+          lon: story.lon,
+          createdAt: story.createdAt,
+          syncTimestamp: new Date().toISOString(),
+        };
 
-    await store.clear();
-
-    for (const story of allStories) {
-      await store.put(story);
+        await store.put(optimizedStory);
+      }
     }
 
     await tx.done;
     await saveUserPreference("lastSyncTime", new Date().toISOString());
-    console.log("Successfully saved latest 10 stories to IndexedDB");
+    console.log("Successfully saved stories to IndexedDB");
     return true;
   } catch (error) {
     console.error("Error saving stories to IndexedDB:", error);
@@ -78,6 +76,44 @@ export async function getStoriesFromIndexedDB() {
   } catch (error) {
     console.error("Error getting stories from IndexedDB:", error);
     return [];
+  }
+}
+
+export async function deleteStoryFromIndexedDB(storyId) {
+  try {
+    const db = await dbPromise;
+    const tx = db.transaction("stories", "readwrite");
+    const store = tx.objectStore("stories");
+
+    await store.delete(storyId);
+    await tx.done;
+
+    console.log(`Story ${storyId} deleted from IndexedDB`);
+    return true;
+  } catch (error) {
+    console.error("Error deleting story from IndexedDB:", error);
+    return false;
+  }
+}
+
+export async function getStoryFromIndexedDB(storyId) {
+  try {
+    const db = await dbPromise;
+    const story = await db.get("stories", storyId);
+    return story || null;
+  } catch (error) {
+    console.error("Error getting single story from IndexedDB:", error);
+    return null;
+  }
+}
+
+export async function isStorySavedOffline(storyId) {
+  try {
+    const story = await getStoryFromIndexedDB(storyId);
+    return story !== null;
+  } catch (error) {
+    console.error("Error checking if story is saved offline:", error);
+    return false;
   }
 }
 
@@ -207,7 +243,7 @@ export async function setupPWA() {
     () => {
       if (Notification.permission === "granted") {
         new Notification("Snapshot", {
-          body: "Anda sedang offline. Postingan akan disimpan dan dikirim saat online.",
+          body: "Anda sedang offline. Postingan akan disimpan dan dikirim saat online kembali.",
           icon: "./images/logo.png",
         });
       }
@@ -216,18 +252,3 @@ export async function setupPWA() {
 
   return registration;
 }
-
-registerSWMessageListener((event) => {
-  const message = event.data;
-
-  if (message.action === "syncComplete") {
-    console.log("Sync completed:", message.result);
-
-    if (message.result && Notification.permission === "granted") {
-      new Notification("Snapshot", {
-        body: "Semua postingan offline berhasil disinkronkan!",
-        icon: "./images/logo.png",
-      });
-    }
-  }
-});

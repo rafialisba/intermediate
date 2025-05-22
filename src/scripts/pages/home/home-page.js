@@ -13,6 +13,7 @@ import {
 import {
   saveStoriesToIndexedDB,
   getStoriesFromIndexedDB,
+  deleteStoryFromIndexedDB,
   setupPWA,
   sendMessageToSW,
   saveUserPreference,
@@ -23,6 +24,7 @@ export default class HomePage {
   #presenter = null;
   #isOnline = navigator.onLine;
   #cachedStories = [];
+  #onlineStories = [];
 
   async render() {
     return `
@@ -47,9 +49,9 @@ export default class HomePage {
         </div>
       </section>
 
-      <!-- Tambahkan bagian untuk data yang disimpan di offline mode -->
+      <!-- Bagian untuk data yang disimpan offline -->
       <section class="offline-data-section" id="offline-data-section">
-        <h2>Data Tersimpan</h2>
+        <h2>Data Tersimpan Offline</h2>
         <p class="offline-info">Cerita yang tersimpan secara lokal akan muncul di sini dan tetap dapat diakses saat offline.</p>
         <div class="offline-data-count">
           <span id="cached-stories-count">0</span> cerita tersimpan di perangkat Anda
@@ -58,13 +60,13 @@ export default class HomePage {
           Terakhir disinkronkan: <span id="last-sync-time">Belum pernah</span>
         </div>
         <div class="cached-stories" id="cached-stories">
-          <p id="no-cached-data" style="display: none;">Tidak ada data tersimpan. Koneksi ke internet diperlukan untuk mendapatkan cerita.</p>
+          <p id="no-cached-data" style="display: none;">Tidak ada data tersimpan. Anda dapat menyimpan cerita dari daftar online.</p>
         </div>
       </section>
 
       <section class="stories-section">
         <div class="stories-header">
-          <h2>Cerita Terbaru</h2>
+          <h2>Cerita Online</h2>
           <p id="loading-text" style="display: none;">Loading stories...</p>
           <p id="error-message"></p>
         </div>
@@ -85,7 +87,6 @@ export default class HomePage {
     this.#updateOnlineStatus();
     window.addEventListener("online", () => {
       this.#updateOnlineStatus();
-
       this.#presenter.loadStories();
     });
     window.addEventListener("offline", () => this.#updateOnlineStatus());
@@ -102,9 +103,15 @@ export default class HomePage {
 
     this.#setupInstallButton();
 
-    await this.#loadStoriesWithCache();
-
     await this.#displayCachedData();
+
+    if (navigator.onLine) {
+      await this.#presenter.loadStories();
+    } else {
+      this.showError(
+        "Anda sedang offline. Hanya data tersimpan yang dapat diakses."
+      );
+    }
   }
 
   async #displayCachedData() {
@@ -160,6 +167,14 @@ export default class HomePage {
             <div class="cached-story-date">
               <span>📅</span> ${showFormattedDate(story.createdAt, "id-ID")}
             </div>
+            <div class="story-actions">
+              <button class="delete-story-btn" data-id="${
+                story.id
+              }">🗑️ Hapus</button>
+              <button class="story-details-btn" data-id="${
+                story.id
+              }">Details ></button>
+            </div>
           </div>
         `;
 
@@ -209,109 +224,80 @@ export default class HomePage {
           });
         }
 
-        storyCard.addEventListener("click", (e) => {
-          if (e.target.closest(".cached-story-map")) return;
-          window.location.hash = `#/stories/${story.id}`;
-        });
-
         cachedStoriesContainer.appendChild(storyCard);
       });
+
+      this.#setupCachedStoryActions();
     } catch (error) {
       console.error("Error displaying cached data:", error);
     }
   }
 
-  #showAllCachedStories() {
-    const modal = document.createElement("div");
-    modal.className = "cached-stories-modal";
+  #setupCachedStoryActions() {
+    document.querySelectorAll(".delete-story-btn").forEach((button) => {
+      button.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const storyId = e.target.getAttribute("data-id");
 
-    const modalContent = document.createElement("div");
-    modalContent.className = "cached-stories-modal-content";
-
-    const closeBtn = document.createElement("span");
-    closeBtn.className = "close-modal";
-    closeBtn.innerHTML = "&times;";
-    closeBtn.addEventListener("click", () => {
-      document.body.removeChild(modal);
-    });
-
-    const heading = document.createElement("h2");
-    heading.textContent = "Semua Cerita Tersimpan";
-
-    const storiesList = document.createElement("div");
-    storiesList.className = "all-cached-stories-list";
-
-    this.#cachedStories.forEach((story) => {
-      const storyCard = document.createElement("div");
-      storyCard.className = "modal-story-card";
-
-      storyCard.innerHTML = `
-        <img src="${story.photoUrl}" alt="${story.name}" loading="lazy" />
-        <div class="modal-story-content">
-          <h3>${story.name}</h3>
-          <p>${story.description}</p>
-          <p class="modal-story-date">${showFormattedDate(
-            story.createdAt,
-            "id-ID"
-          )}</p>
-        </div>
-      `;
-
-      storyCard.addEventListener("click", () => {
-        window.location.hash = `#/stories/${story.id}`;
-        document.body.removeChild(modal);
+        if (
+          confirm(
+            "Apakah Anda yakin ingin menghapus cerita ini dari penyimpanan offline?"
+          )
+        ) {
+          await this.#deleteStoryCached(storyId);
+        }
       });
-
-      storiesList.appendChild(storyCard);
     });
 
-    modalContent.appendChild(closeBtn);
-    modalContent.appendChild(heading);
-    modalContent.appendChild(storiesList);
-    modal.appendChild(modalContent);
-
-    document.body.appendChild(modal);
-
-    modal.addEventListener("click", (e) => {
-      if (e.target === modal) {
-        document.body.removeChild(modal);
-      }
+    document.querySelectorAll(".story-details-btn").forEach((button) => {
+      button.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const storyId = e.target.getAttribute("data-id");
+        window.location.hash = `#/stories/${storyId}`;
+      });
     });
   }
 
-  async #loadStoriesWithCache() {
-    this.showLoading();
-
+  async #deleteStoryCached(storyId) {
     try {
-      const cachedStories = await getStoriesFromIndexedDB();
-      if (cachedStories && cachedStories.length > 0) {
-        console.log("Showing cached stories from IndexedDB");
-        this.showStories(cachedStories);
-        this.hideLoading();
+      const success = await deleteStoryFromIndexedDB(storyId);
 
-        await saveUserPreference("lastVisit", new Date().toISOString());
-      }
-
-      if (navigator.onLine) {
-        this.#presenter.loadStories();
+      if (success) {
+        this.showSuccess("Cerita berhasil dihapus dari penyimpanan offline");
+        await this.#displayCachedData();
       } else {
-        if (!cachedStories || cachedStories.length === 0) {
-          this.showError(
-            "Anda sedang offline dan tidak ada data lokal tersedia"
-          );
-          this.hideLoading();
-        }
+        this.showError("Gagal menghapus cerita dari penyimpanan offline");
       }
     } catch (error) {
-      console.error("Error loading stories with cache:", error);
-      if (navigator.onLine) {
-        this.#presenter.loadStories();
+      console.error("Error deleting cached story:", error);
+      this.showError("Terjadi kesalahan saat menghapus cerita");
+    }
+  }
+
+  async #saveStoryToCache(story) {
+    try {
+      const storyToSave = {
+        id: story.id,
+        title: story.name,
+        description: story.description,
+        photoUrl: story.photoUrl,
+        lat: story.lat,
+        lon: story.lon,
+        createdAt: story.createdAt,
+        syncTimestamp: new Date().toISOString(),
+      };
+
+      const success = await saveStoriesToIndexedDB([storyToSave]);
+
+      if (success) {
+        this.showSuccess("Cerita berhasil disimpan untuk akses offline");
+        await this.#displayCachedData();
       } else {
-        this.showError(
-          "Tidak dapat memuat data. Silakan periksa koneksi internet Anda."
-        );
-        this.hideLoading();
+        this.showError("Gagal menyimpan cerita untuk akses offline");
       }
+    } catch (error) {
+      console.error("Error saving story to cache:", error);
+      this.showError("Terjadi kesalahan saat menyimpan cerita");
     }
   }
 
@@ -342,6 +328,7 @@ export default class HomePage {
       }
     }
   }
+
   #setupInstallButton() {
     const installContainer = document.getElementById("install-container");
     const installButton = document.getElementById("install-button");
@@ -360,9 +347,7 @@ export default class HomePage {
 
     window.addEventListener("beforeinstallprompt", (e) => {
       e.preventDefault();
-
       deferredPrompt = e;
-
       installContainer.style.display = "block";
     });
 
@@ -371,21 +356,16 @@ export default class HomePage {
 
       if (deferredPrompt) {
         deferredPrompt.prompt();
-
         const { outcome } = await deferredPrompt.userChoice;
         console.log(`User response to the install prompt: ${outcome}`);
-
         deferredPrompt = null;
       }
     });
 
     window.addEventListener("appinstalled", (evt) => {
       console.log("PWA was installed");
-
       installContainer.style.display = "none";
-
       saveUserPreference("appInstalled", true);
-
       this.showSuccess(
         "Aplikasi berhasil diinstal! Kamu dapat membukanya dari layar utama perangkat."
       );
@@ -417,7 +397,6 @@ export default class HomePage {
           statusElement.textContent = "Status: Tidak Aktif";
           toggleButton.textContent = "Aktifkan Notifikasi";
           toggleButton.classList.remove("active");
-
           await saveUserPreference("notificationsEnabled", false);
         }
       } else {
@@ -428,9 +407,7 @@ export default class HomePage {
             statusElement.textContent = "Status: Aktif";
             toggleButton.textContent = "Nonaktifkan Notifikasi";
             toggleButton.classList.add("active");
-
             await saveUserPreference("notificationsEnabled", true);
-
             this.#sendWelcomeNotification();
           }
         } else {
@@ -493,18 +470,40 @@ export default class HomePage {
   }
 
   showSuccess(message) {
-    alert(message);
+    const notification = document.createElement("div");
+    notification.className = "success-notification";
+    notification.textContent = message;
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #4CAF50;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      z-index: 9999;
+      animation: slideIn 0.3s ease;
+    `;
+
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+      notification.style.opacity = "0";
+      notification.style.transition = "opacity 0.5s ease";
+      setTimeout(() => notification.remove(), 500);
+    }, 3000);
   }
 
-  showStories(stories) {
+  async showStories(stories) {
     const container = document.getElementById("story-list");
+    this.#onlineStories = stories || [];
 
     const loading = document.getElementById("loading-text");
     if (loading) loading.style.display = "none";
 
     if (!stories.length) {
       container.innerHTML = `
-        <h2>Cerita Terbaru</h2>
         <p>Tidak ada cerita ditemukan.</p>
       `;
       return;
@@ -512,9 +511,14 @@ export default class HomePage {
 
     container.innerHTML = "";
 
+    const cachedStoryIds = this.#cachedStories.map((story) => story.id);
+
     stories.forEach((story) => {
       const storyCard = document.createElement("article");
       storyCard.className = "story-card";
+
+      const isAlreadySaved = cachedStoryIds.includes(story.id);
+
       storyCard.innerHTML = `
           <img src="${story.photoUrl}" alt="${
         story.name
@@ -530,9 +534,16 @@ export default class HomePage {
               }</p>
           </div>
           <p>${showFormattedDate(story.createdAt, "id-ID")}</p>
-          <button class="story-card-button-details" data-id="${
-            story.id
-          }">Details ></button>
+          <div class="story-actions">
+            <button class="save-story-btn" data-id="${story.id}" ${
+        isAlreadySaved ? "disabled" : ""
+      }>
+              ${isAlreadySaved ? "✅ Tersimpan" : "💾 Simpan"}
+            </button>
+            <button class="story-card-button-details" data-id="${story.id}">
+              Details >
+            </button>
+          </div>
       `;
 
       const mapDiv = document.createElement("div");
@@ -584,14 +595,32 @@ export default class HomePage {
       }
     });
 
-    this.#setupDetailButtons();
+    this.#setupOnlineStoryActions();
   }
 
-  #setupDetailButtons() {
+  #setupOnlineStoryActions() {
+    document.querySelectorAll(".save-story-btn").forEach((button) => {
+      button.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const storyId = e.target.getAttribute("data-id");
+        const story = this.#onlineStories.find((s) => s.id === storyId);
+
+        if (story && !button.disabled) {
+          button.disabled = true;
+          button.textContent = "⏳ Menyimpan...";
+
+          await this.#saveStoryToCache(story);
+
+          button.textContent = "✅ Tersimpan";
+        }
+      });
+    });
+
     document
       .querySelectorAll(".story-card-button-details")
       .forEach((button) => {
         button.addEventListener("click", (e) => {
+          e.stopPropagation();
           const storyId = e.currentTarget.getAttribute("data-id");
           window.location.hash = `#/stories/${storyId}`;
         });
