@@ -16,10 +16,23 @@ precacheAndRoute([
   { url: "./", revision: "1" },
   { url: "./index.html", revision: "1" },
   { url: "./manifest.json", revision: "1" },
-  { url: "./favicon.png", revision: "1" },
-  { url: "./offline.html", revision: "1" },
-  { url: "./images/logo.png", revision: "1" },
 ]);
+
+// Alternatif: Gunakan runtime caching untuk file statis
+registerRoute(
+  ({ request }) =>
+    request.destination === "document" || request.destination === "manifest",
+  new NetworkFirst({
+    cacheName: "pages-cache",
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: 20,
+        maxAgeSeconds: 24 * 60 * 60,
+      }),
+    ],
+    networkTimeoutSeconds: 3,
+  })
+);
 
 registerRoute(
   /\/api\/.*$/,
@@ -57,7 +70,7 @@ registerRoute(
 registerRoute(
   ({ request }) => request.mode === "navigate",
   new NetworkFirst({
-    cacheName: "pages-cache",
+    cacheName: "navigate-cache",
     plugins: [
       new ExpirationPlugin({
         maxEntries: 20,
@@ -364,14 +377,18 @@ self.addEventListener("fetch", function (event) {
           }
         }
 
-        const cache = await caches.open("pages-cache");
-        const cachedResponse = await cache.match("./offline.html");
-        return (
-          cachedResponse ||
-          new Response("Network error, and no offline page available", {
+        // Fallback ke generic offline response jika tidak ada offline.html
+        return new Response(
+          JSON.stringify({
+            error: true,
+            message: "Network tidak tersedia, silakan coba lagi nanti",
+            offline: true,
+          }),
+          {
             status: 503,
+            headers: { "Content-Type": "application/json" },
             statusText: "Service Unavailable",
-          })
+          }
         );
       });
 
